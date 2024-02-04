@@ -1,20 +1,19 @@
 import os.path
 
 import pytest
-from pytest import mark
 
-from src.api.serializer import JSONSerializer, PlainSerializer, \
-    AbstractSerializer, PickleSerializer
+from src.api.serializers import JSONSerializer, PlainSerializer, \
+    BaseSerializer, PickleSerializer, NestedStructureSerializer
 
 password: str = '1234567890987654321'
 test_path: str = './tests/data/'
 
 
 class _TestSerializer:
-    serializer: AbstractSerializer = None
+    serializer: BaseSerializer = None
 
     test_save_name: str = None
-    test_data: str = None
+    test_data: bytes = None
 
     @property
     def save_path(self) -> str:
@@ -27,7 +26,7 @@ class _TestSerializer:
             password=password
         )
 
-        PlainSerializer.loader.write(
+        self.serializer.loader.write(
             data=serialized,
             path=self.save_path
         )
@@ -61,17 +60,24 @@ class TestJSONSerializer(_TestSerializer):
     test_data = {'1': 2, '3': '4', '5': None}
 
 
-@mark.skip  # currently not worked serializer
-class TestNestedStructureSerializer(_TestSerializer):
-    serializer = None
-
-    test_save_name = 'nested-serialized'
-    test_data = {'1': ['nested-data', 'another-data'], '2': ['kek']}
-
-
-@mark.skip  # currently not worked serializer
 class TestPickleSerializer(_TestSerializer):
     serializer = PickleSerializer
 
     test_save_name = 'pickle-serialized'
-    test_data = type('TestClass', tuple(), dict(x=1, y=2))
+
+    class TestClass:
+        x = 1
+        y = '2'
+
+        def __init__(self):
+            self.z = 'wow'
+
+    test_data = TestClass
+
+
+class TestNestedStructureSerializer(_TestSerializer):
+    serializer = NestedStructureSerializer
+
+    test_save_name = 'nested-serialized'
+    test_data = {'1': ['nested-data', 'another-data', {'hey': 'you'}],
+                 '2': ['kek']}
